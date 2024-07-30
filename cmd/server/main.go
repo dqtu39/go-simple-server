@@ -1,20 +1,28 @@
 package main
 
 import (
+	"github.com/dqtu39/go-simple-server/internal/handlers"
+	"github.com/dqtu39/go-simple-server/internal/repository"
+	"github.com/dqtu39/go-simple-server/internal/routes"
+	"github.com/dqtu39/go-simple-server/internal/service"
+	"github.com/dqtu39/go-simple-server/internal/storage"
+	"log"
 	"net/http"
 )
 
-type Employee struct {
-	Id           int    `json:"id"`
-	Name         string `json:"employee_name"`
-	Age          int    `json:"employee_age"`
-	ProfileImage string `json:"profile_image"`
-}
-
 func main() {
-	resp, err := http.Get("https://dummy.restapiexample.com/api/v1/employees")
+	err := storage.LoadEmployees("data/employees.json")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to load employees: %v", err)
 	}
-	defer resp.Body.Close()
+
+	repo := repository.NewEmployeeRepository(&storage.Employees)
+	employeeService := service.NewEmployeeService(repo)
+	handler := handlers.NewEmployeeHandler(employeeService)
+
+	router := routes.SetupRoutes(handler)
+
+	log.Println("Server is running on port 8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
+
 }
