@@ -1,28 +1,43 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/dqtu39/go-simple-server/internal/handlers"
 	"github.com/dqtu39/go-simple-server/internal/repository"
-	"github.com/dqtu39/go-simple-server/internal/routes"
+	routes2 "github.com/dqtu39/go-simple-server/internal/routes"
 	"github.com/dqtu39/go-simple-server/internal/service"
-	"github.com/dqtu39/go-simple-server/internal/storage"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
-	err := storage.LoadEmployees("data/employees.json")
+	db, err := sql.Open("mysql", "root:P@ssword@/godatabase")
 	if err != nil {
-		log.Fatalf("Failed to load employees: %v", err)
+		panic(err)
+	}
+	defer db.Close()
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+	err = db.Ping()
+
+	if err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	} else {
+		log.Println("Successfully connected to the database.")
 	}
 
-	repo := repository.NewEmployeeRepository(&storage.Employees)
+	// Initialize repository and service
+	repo := repository.NewEmployeeRepository(db)
 	employeeService := service.NewEmployeeService(repo)
 	handler := handlers.NewEmployeeHandler(employeeService)
 
-	router := routes.SetupRoutes(handler)
+	// Setup routes
+	routes := routes2.SetupRoutes(handler)
 
+	// Start the server
 	log.Println("Server is running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
-
+	log.Fatal(http.ListenAndServe(":8080", routes))
 }
