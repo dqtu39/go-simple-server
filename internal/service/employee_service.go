@@ -7,10 +7,10 @@ import (
 
 type EmployeeService interface {
 	GetAllEmployees() ([]models.Employee, error)
-	GetEmployeeByID(id int) *models.Employee
-	AddEmployee(employee models.Employee)
-	UpdateEmployee(id int, employee models.Employee) bool
-	DeleteEmployee(id int) bool
+	GetEmployeeByID(id int) (*models.Employee, error)
+	AddEmployee(employee models.Employee) (int64, error)
+	UpdateEmployee(id int, employee models.Employee) (int64, error)
+	DeleteEmployee(id int) (int64, error)
 }
 
 type employeeService struct {
@@ -25,18 +25,18 @@ func (s *employeeService) GetAllEmployees() ([]models.Employee, error) {
 	return s.repo.GetAll()
 }
 
-func (s *employeeService) GetEmployeeByID(id int) *models.Employee {
+func (s *employeeService) GetEmployeeByID(id int) (*models.Employee, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *employeeService) AddEmployee(employee models.Employee) {
-	s.repo.Add(employee)
+func (s *employeeService) AddEmployee(employee models.Employee) (int64, error) {
+	return s.repo.Add(employee)
 }
 
-func (s *employeeService) UpdateEmployee(id int, employee models.Employee) bool {
+func (s *employeeService) UpdateEmployee(id int, employee models.Employee) (int64, error) {
 	return s.repo.Update(id, employee)
 }
 
-func (s *employeeService) DeleteEmployee(id int) bool {
+func (s *employeeService) DeleteEmployee(id int) (int64, error) {
 	return s.repo.Delete(id)
 }
