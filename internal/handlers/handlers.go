@@ -24,28 +24,20 @@ func (handler *EmployeeHandler) GetEmployeeById(w http.ResponseWriter, r *http.R
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	var employee *models.Employee
-	employee, err = handler.service.GetEmployeeByID(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	employee = handler.service.GetEmployeeByID(id)
+	if employee == nil {
+		http.Error(w, "Employee not found", http.StatusNotFound)
 	}
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(employee)
 
 }
 
 func (handler *EmployeeHandler) CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	var employee models.Employee
-	if err := json.NewDecoder(r.Body).Decode(&employee); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	id, err := handler.service.AddEmployee(employee)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]int64{"id": id})
+	json.NewDecoder(r.Body).Decode(&employee)
+	handler.service.AddEmployee(employee)
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(employee)
 }
 
 func (handler *EmployeeHandler) UpdateEmployee(w http.ResponseWriter, r *http.Request) {
@@ -53,32 +45,31 @@ func (handler *EmployeeHandler) UpdateEmployee(w http.ResponseWriter, r *http.Re
 	id, _ := strconv.Atoi(params["id"])
 	var updatedEmployee models.Employee
 	json.NewDecoder(r.Body).Decode(&updatedEmployee)
-	_, err := handler.service.UpdateEmployee(id, updatedEmployee)
-	if err != nil {
+	success := handler.service.UpdateEmployee(id, updatedEmployee)
+	if !success {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(updatedEmployee)
 }
 
 func (handler *EmployeeHandler) DeleteEmployee(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, _ := strconv.Atoi(params["id"])
-	_, err := handler.service.DeleteEmployee(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+	success := handler.service.DeleteEmployee(id)
+	if !success {
+		http.NotFound(w, r)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("Employee deleted")
 }
 
 func (handler *EmployeeHandler) GetAllEmployees(w http.ResponseWriter, r *http.Request) {
 	employees, err := handler.service.GetAllEmployees()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode("Error getting all employees")
 	}
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(employees)
 }
